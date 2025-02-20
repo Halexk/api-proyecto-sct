@@ -1,0 +1,4 @@
+POST http://localhost:3000/api/users/register HTTP/1.1
+header name: header value
+
+content
