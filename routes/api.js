@@ -1,6 +1,8 @@
 const router = require('express').Router();
 
-router.use('/dailyEaters', require('./api/dailyEaters'));
+router.use('/equipments', require('./api/equipments'));
+
+router.use('/reports', require('./api/reports'));
 
 router.use('/users', require('./api/users'));
 
