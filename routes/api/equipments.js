@@ -1,5 +1,35 @@
 const router = require('express').Router();
 const mysql = require('mysql');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = 'cetasio123';
+
+function verifyToken(req, res, next) {
+  const token = req.headers['authorization'];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token no proporcionado' });
+  }
+
+  // Extraer el token del encabezado "Bearer <token>"
+  const tokenParts = token.split(' ');
+  if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
+    return res.status(401).json({ error: 'Formato de token inválido' });
+  }
+
+  const jwtToken = tokenParts[1];
+
+  // Verificar el token
+  jwt.verify(jwtToken, JWT_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+
+    // Almacenar los datos del usuario en la solicitud para su uso posterior
+    req.user = decoded;
+    next();
+  });
+}
 
 
 
@@ -11,7 +41,7 @@ const connection = mysql.createConnection({
   });
 
 //register equipments
-router.post('/add', (req, res) => {
+router.post('/add', verifyToken, (req, res) => {
   const { bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion } = req.body;
 
   const query = `
@@ -33,7 +63,7 @@ router.post('/add', (req, res) => {
   });
 });
 
-router.get('/search', (req, res) => {
+router.get('/search',(req, res) => {
   const { bienNacional } = req.query;
 
   if (!bienNacional) {
@@ -52,9 +82,10 @@ router.get('/search', (req, res) => {
   });
 });
 
-router.put('/:id/status', (req, res) => {
+router.put('/:id/status', verifyToken, (req, res) => {
   const { id } = req.params;
   const { estado, ubicacion, asignacion, motivo, observacion } = req.body;
+  const userId = req.user.id; // Obtener el ID del usuario desde el token
 
   if (!estado && !ubicacion && !asignacion) {
     return res.status(400).json({ error: 'Se requiere al menos un campo para actualizar' });
@@ -101,8 +132,9 @@ router.put('/:id/status', (req, res) => {
           asignacion_anterior,
           asignacion_nueva,
           motivo,
-          observacion
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          observacion,
+          user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const reportValues = [
         id,
@@ -113,7 +145,8 @@ router.put('/:id/status', (req, res) => {
         equipoActual.asignacion,
         asignacion || equipoActual.asignacion,
         motivo,
-        observacion
+        observacion,
+        userId // ID del usuario que realizó el cambio
       ];
 
       connection.query(reportQuery, reportValues, (error, results) => {

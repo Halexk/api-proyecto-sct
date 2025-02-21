@@ -24,8 +24,20 @@ CREATE TABLE IF NOT EXISTS reports (
     ubicacion_nueva VARCHAR(255) NOT NULL,
     asignacion_anterior VARCHAR(255) NOT NULL,
     asignacion_nueva VARCHAR(255) NOT NULL,
-    motivo ENUM('reubicación', 'reparación', 'reasignación') NOT NULL,
+    motivo ENUM('reubicacion', 'reparacion', 'reasignacion') NOT NULL,
     observacion TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (equipment_id) REFERENCES equipments(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+);
+
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    apellido VARCHAR(255) NOT NULL,
+    dni VARCHAR(20) NOT NULL UNIQUE, -- DNI único
+    cargo VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL, -- Contraseña cifrada
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

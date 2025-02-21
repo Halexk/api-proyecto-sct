@@ -1,6 +1,35 @@
 const router = require('express').Router();
 const mysql = require('mysql');
+const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = 'cetasio123';
+
+function verifyToken(req, res, next) {
+  const token = req.headers['authorization'];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token no proporcionado' });
+  }
+
+  // Extraer el token del encabezado "Bearer <token>"
+  const tokenParts = token.split(' ');
+  if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
+    return res.status(401).json({ error: 'Formato de token inválido' });
+  }
+
+  const jwtToken = tokenParts[1];
+
+  // Verificar el token
+  jwt.verify(jwtToken, JWT_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+
+    // Almacenar los datos del usuario en la solicitud para su uso posterior
+    req.user = decoded;
+    next();
+  });
+}
 
 
 const connection = mysql.createConnection({
@@ -11,7 +40,7 @@ const connection = mysql.createConnection({
   });
 
   //Equipos reparados en un período de tiempo
-  router.get('/reparados', (req, res) => {
+  router.get('/reparados', verifyToken, (req, res) => {
     const { fechaInicio, fechaFin } = req.query;
   
     if (!fechaInicio || !fechaFin) {
@@ -34,7 +63,7 @@ const connection = mysql.createConnection({
 
 
 //Tiempo promedio de reparación
-  router.get('/tiempo-reparacion', (req, res) => {
+  router.get('/tiempo-reparacion', verifyToken,(req, res) => {
     const { fechaInicio, fechaFin } = req.query;
   
     if (!fechaInicio || !fechaFin) {
@@ -59,7 +88,7 @@ const connection = mysql.createConnection({
 
 
   //Equipos reubicados y ubicaciones más comunes
-  router.get('/reubicados', (req, res) => {
+  router.get('/reubicados', verifyToken,(req, res) => {
     const { fechaInicio, fechaFin } = req.query;
   
     if (!fechaInicio || !fechaFin) {
