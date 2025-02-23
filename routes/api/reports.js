@@ -159,4 +159,42 @@ router.get('/retiros-reparacion', (req, res) => {
   });
 });
 
+// Obtener todos los reportes en un período de tiempo, ordenados por fecha y hora
+router.get('/reportes-completos', (req, res) => {
+  const { fechaInicio, fechaFin } = req.query;
+
+  if (!fechaInicio || !fechaFin) {
+    return res.status(400).json({ error: 'Las fechas de inicio y fin son requeridas' });
+  }
+
+  const query = `
+    SELECT 
+      r.id,
+      e.bienNacional,
+      r.estado_anterior,
+      r.estado_nuevo,
+      r.ubicacion_anterior,
+      r.ubicacion_nueva,
+      r.asignacion_anterior,
+      r.asignacion_nueva,
+      r.motivo,
+      r.observacion,
+      r.created_at
+    FROM reports r  
+    JOIN equipments e ON r.equipment_id = e.id
+    WHERE r.created_at BETWEEN ? AND ?
+    ORDER BY r.created_at ASC
+  `;
+
+  connection.query(query, [fechaInicio, fechaFin], (error, results) => {
+    if (error) {
+      return res.status(500).json({ error: 'Error en la consulta a la base de datos' });
+    }
+    if (results.length === 0) {
+      return res.status(200).json({ mensaje: 'No se encontraron reportes en el período especificado' });
+    }
+    res.status(200).json(results);
+  });
+});
+
   module.exports = router;

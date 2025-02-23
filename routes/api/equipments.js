@@ -63,22 +63,48 @@ router.post('/add', verifyToken, (req, res) => {
   });
 });
 
-router.get('/search',(req, res) => {
+router.get('/search', (req, res) => {
   const { bienNacional } = req.query;
 
   if (!bienNacional) {
     return res.status(400).json({ error: 'El parámetro bienNacional es requerido' });
   }
 
-  const query = 'SELECT * FROM equipments WHERE bienNacional = ?';
-  connection.query(query, [bienNacional], (error, results) => {
+  // Consulta para obtener la información del equipo
+  const queryEquipo = 'SELECT * FROM equipments WHERE bienNacional = ?';
+  connection.query(queryEquipo, [bienNacional], (error, resultsEquipo) => {
     if (error) {
       return res.status(500).json({ error: 'Error en la consulta a la base de datos' });
     }
-    if (results.length === 0) {
+    if (resultsEquipo.length === 0) {
       return res.status(404).json({ error: 'Equipo no encontrado' });
     }
-    res.status(200).json(results[0]);
+
+    const equipo = resultsEquipo[0];
+    console.log('ID del equipo:', equipo.id); // Verifica que el ID sea correcto
+
+    // Consulta para obtener el último reporte del equipo
+    const queryUltimoReporte = `
+      SELECT motivo 
+      FROM reports 
+      WHERE equipment_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `;
+    connection.query(queryUltimoReporte, [equipo.id], (error, resultsReporte) => {
+      if (error) {
+        return res.status(500).json({ error: 'Error en la consulta a la base de datos' });
+      }
+
+
+      // Combinar la información del equipo con el último reporte
+      const respuesta = {
+        ...equipo, // Información del equipo
+        ultimoMotivo: resultsReporte.length > 0 ? resultsReporte[0].motivo : null // Motivo del último reporte
+      };
+
+      res.status(200).json(respuesta);
+    });
   });
 });
 
