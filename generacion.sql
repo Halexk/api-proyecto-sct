@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     equipment_id INT NOT NULL,
     user_id INT NOT NULL,
-    estado_anterior ENUM'operativo', 'reparacion', 'inoperativo') NOT NULL,
+    estado_anterior ENUM('operativo', 'reparacion', 'inoperativo') NOT NULL,
     estado_nuevo ENUM('operativo', 'reparacion', 'inoperativo') NOT NULL,
     ubicacion_anterior VARCHAR(255) NOT NULL,
     ubicacion_nueva VARCHAR(255) NOT NULL,

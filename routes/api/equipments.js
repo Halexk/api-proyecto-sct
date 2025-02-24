@@ -81,7 +81,6 @@ router.get('/search', (req, res) => {
     }
 
     const equipo = resultsEquipo[0];
-    console.log('ID del equipo:', equipo.id); // Verifica que el ID sea correcto
 
     // Consulta para obtener el último reporte del equipo
     const queryUltimoReporte = `
@@ -141,7 +140,6 @@ router.put('/:id/status', verifyToken, (req, res) => {
       asignacion || equipoActual.asignacion,
       id
     ];
-
     connection.query(updateQuery, nuevosValores, (error, results) => {
       if (error) {
         return res.status(500).json({ error: 'Error al actualizar el equipo' });
