@@ -119,7 +119,6 @@ router.get('/tiempo-reparacion', (req, res) => {
         return res.status(200).json({ mensaje: 'No se encontraron datos de reubicados' });
       }
     // Devuelve una lista de reubicaciones
-      console.log(results)
       const reubicados = results.map(row => ({
         equipo: row.equipo,
         ubicacionAnterior: row.ubicacion_anterior,
