@@ -5,10 +5,10 @@ const cors = require('cors');
 
 // Configura CORS para permitir solicitudes desde http://localhost:4200
 app.use(cors({
-    origin: 'http://localhost:4200', // Permite solo este origen
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'] // Cabeceras permitidas
-  }));
+  origin: '*', // Permite cualquier origen
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
   
 const connection = mysql.createConnection({
     host: 'localhost',
