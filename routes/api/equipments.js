@@ -42,13 +42,13 @@ const connection = mysql.createConnection({
 
 //register equipments
 router.post('/add', verifyToken, (req, res) => {
-  const { bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion } = req.body;
+  const { bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion, caracteristicas } = req.body;
 
   const query = `
-    INSERT INTO equipments (bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO equipments (bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion, caracteristicas)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
-  const values = [bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion];
+  const values = [bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion, caracteristicas];
 
   connection.query(query, values, (error, results) => {
     if (error) {
@@ -109,15 +109,15 @@ router.get('/search', (req, res) => {
 
 router.put('/:id/status', verifyToken, (req, res) => {
   const { id } = req.params;
-  const { estado, ubicacion, asignacion, motivo, observacion } = req.body;
+  const { estado, ubicacion, asignacion, motivo, observacion, caracteristicas } = req.body;
   const userId = req.user.id; // Obtener el ID del usuario desde el token
 
-  if (!estado && !ubicacion && !asignacion) {
+  if (!estado && !ubicacion && !asignacion && !caracteristicas) {
     return res.status(400).json({ error: 'Se requiere al menos un campo para actualizar' });
   }
 
   // Obtener los valores actuales del equipo
-  const getQuery = 'SELECT estado, ubicacion, asignacion FROM equipments WHERE id = ?';
+  const getQuery = 'SELECT estado, ubicacion, asignacion, caracteristicas FROM equipments WHERE id = ?';
   connection.query(getQuery, [id], (error, results) => {
     if (error) {
       return res.status(500).json({ error: 'Error al obtener los datos del equipo' });
@@ -131,13 +131,14 @@ router.put('/:id/status', verifyToken, (req, res) => {
     // Actualizar el equipo
     const updateQuery = `
       UPDATE equipments
-      SET estado = ?, ubicacion = ?, asignacion = ?
+      SET estado = ?, ubicacion = ?, asignacion = ?, caracteristicas = ?
       WHERE id = ?
     `;
     const nuevosValores = [
       estado || equipoActual.estado,
       ubicacion || equipoActual.ubicacion,
       asignacion || equipoActual.asignacion,
+      caracteristicas || equipoActual.caracteristicas,
       id
     ];
     connection.query(updateQuery, nuevosValores, (error, results) => {

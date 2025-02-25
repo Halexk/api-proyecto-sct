@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS equipments (
     estado ENUM('operativo', 'reparacion', 'inoperativo') NOT NULL,
     ubicacion VARCHAR(255) NOT NULL,
     asignacion VARCHAR(255) NOT NULL,
+    caracteristicas TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
