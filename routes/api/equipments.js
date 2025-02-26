@@ -1,24 +1,58 @@
+require('dotenv').config(); // Carga las variables de entorno al inicio
+
 const router = require('express').Router();
 const mysql = require('mysql');
+const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET;
 
+function verifyToken(req, res, next) {
+  const token = req.headers['authorization'];
 
-const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'equipment_db'
+  if (!token) {
+    return res.status(401).json({ error: 'Token no proporcionado' });
+  }
+
+  // Extraer el token del encabezado "Bearer <token>"
+  const tokenParts = token.split(' ');
+  if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
+    return res.status(401).json({ error: 'Formato de token inválido' });
+  }
+
+  const jwtToken = tokenParts[1];
+
+  // Verificar el token
+  jwt.verify(jwtToken, JWT_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+
+    // Almacenar los datos del usuario en la solicitud para su uso posterior
+    req.user = decoded;
+    next();
   });
+}
+
+
+
+// Configuración de la conexión a la base de datos usando variables de entorno
+const connection = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+});
+
 
 //register equipments
-router.post('/add', (req, res) => {
-  const { bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion } = req.body;
+router.post('/add', verifyToken, (req, res) => {
+  const { bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion, caracteristicas } = req.body;
 
   const query = `
-    INSERT INTO equipments (bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO equipments (bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion, caracteristicas)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
-  const values = [bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion];
+  const values = [bienNacional, tipoEquipo, numeroSerie, estado, ubicacion, asignacion, caracteristicas];
 
   connection.query(query, values, (error, results) => {
     if (error) {
@@ -40,28 +74,54 @@ router.get('/search', (req, res) => {
     return res.status(400).json({ error: 'El parámetro bienNacional es requerido' });
   }
 
-  const query = 'SELECT * FROM equipments WHERE bienNacional = ?';
-  connection.query(query, [bienNacional], (error, results) => {
+  // Consulta para obtener la información del equipo
+  const queryEquipo = 'SELECT * FROM equipments WHERE bienNacional = ?';
+  connection.query(queryEquipo, [bienNacional], (error, resultsEquipo) => {
     if (error) {
       return res.status(500).json({ error: 'Error en la consulta a la base de datos' });
     }
-    if (results.length === 0) {
+    if (resultsEquipo.length === 0) {
       return res.status(404).json({ error: 'Equipo no encontrado' });
     }
-    res.status(200).json(results[0]);
+
+    const equipo = resultsEquipo[0];
+
+    // Consulta para obtener el último reporte del equipo
+    const queryUltimoReporte = `
+      SELECT motivo 
+      FROM reports 
+      WHERE equipment_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `;
+    connection.query(queryUltimoReporte, [equipo.id], (error, resultsReporte) => {
+      if (error) {
+        return res.status(500).json({ error: 'Error en la consulta a la base de datos' });
+      }
+
+
+      // Combinar la información del equipo con el último reporte
+      const respuesta = {
+        ...equipo, // Información del equipo
+        ultimoMotivo: resultsReporte.length > 0 ? resultsReporte[0].motivo : null // Motivo del último reporte
+      };
+
+      res.status(200).json(respuesta);
+    });
   });
 });
 
-router.put('/:id/status', (req, res) => {
+router.put('/:id/status', verifyToken, (req, res) => {
   const { id } = req.params;
-  const { estado, ubicacion, asignacion, motivo, observacion } = req.body;
+  const { estado, ubicacion, asignacion, motivo, observacion, caracteristicas } = req.body;
+  const userId = req.user.id; // Obtener el ID del usuario desde el token
 
-  if (!estado && !ubicacion && !asignacion) {
+  if (!estado && !ubicacion && !asignacion && !caracteristicas) {
     return res.status(400).json({ error: 'Se requiere al menos un campo para actualizar' });
   }
 
   // Obtener los valores actuales del equipo
-  const getQuery = 'SELECT estado, ubicacion, asignacion FROM equipments WHERE id = ?';
+  const getQuery = 'SELECT estado, ubicacion, asignacion, caracteristicas FROM equipments WHERE id = ?';
   connection.query(getQuery, [id], (error, results) => {
     if (error) {
       return res.status(500).json({ error: 'Error al obtener los datos del equipo' });
@@ -75,16 +135,16 @@ router.put('/:id/status', (req, res) => {
     // Actualizar el equipo
     const updateQuery = `
       UPDATE equipments
-      SET estado = ?, ubicacion = ?, asignacion = ?
+      SET estado = ?, ubicacion = ?, asignacion = ?, caracteristicas = ?
       WHERE id = ?
     `;
     const nuevosValores = [
       estado || equipoActual.estado,
       ubicacion || equipoActual.ubicacion,
       asignacion || equipoActual.asignacion,
+      caracteristicas || equipoActual.caracteristicas,
       id
     ];
-
     connection.query(updateQuery, nuevosValores, (error, results) => {
       if (error) {
         return res.status(500).json({ error: 'Error al actualizar el equipo' });
@@ -101,8 +161,9 @@ router.put('/:id/status', (req, res) => {
           asignacion_anterior,
           asignacion_nueva,
           motivo,
-          observacion
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          observacion,
+          user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const reportValues = [
         id,
@@ -113,7 +174,8 @@ router.put('/:id/status', (req, res) => {
         equipoActual.asignacion,
         asignacion || equipoActual.asignacion,
         motivo,
-        observacion
+        observacion,
+        userId // ID del usuario que realizó el cambio
       ];
 
       connection.query(reportQuery, reportValues, (error, results) => {

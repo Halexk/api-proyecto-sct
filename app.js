@@ -1,3 +1,5 @@
+require('dotenv').config(); // Carga las variables de entorno al inicio
+
 const express = require('express');
 const mysql = require('mysql');
 const app = express();
@@ -5,30 +7,36 @@ const cors = require('cors');
 
 // Configura CORS para permitir solicitudes desde http://localhost:4200
 app.use(cors({
-    origin: 'http://localhost:4200', // Permite solo este origen
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'] // Cabeceras permitidas
-  }));
-  
+  origin: '*', // Permite cualquier origen
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Configuración de la conexión a la base de datos usando variables de entorno
 const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'equipment_db'
-  });
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+});
 
-require('dotenv').config();
+// Conectar a la base de datos
+connection.connect((err) => {
+  if (err) {
+    console.error('Error conectando a la base de datos:', err);
+    return;
+  }
+  console.log('Conexión a la base de datos establecida');
+});
 
-
-// Config 
-connection.connect();
+// Middleware para parsear JSON
 app.use(express.json());
 
-// GET
+// Rutas
 app.use('/api', require('./routes/api'));
 
-const  PORT = process.env.PORT || 3000;
-app.listen(PORT , () => {
-    console.log(`Servidor escuchando en puerto ${PORT}`);
-})
-
+// Configura el puerto
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`);
+});
