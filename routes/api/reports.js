@@ -1,43 +1,18 @@
+require('dotenv').config(); // Carga las variables de entorno al inicio
+
 const router = require('express').Router();
 const mysql = require('mysql');
-const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = 'cetasio123';
-
-function verifyToken(req, res, next) {
-  const token = req.headers['authorization'];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token no proporcionado' });
-  }
-
-  // Extraer el token del encabezado "Bearer <token>"
-  const tokenParts = token.split(' ');
-  if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
-    return res.status(401).json({ error: 'Formato de token inválido' });
-  }
-
-  const jwtToken = tokenParts[1];
-
-  // Verificar el token
-  jwt.verify(jwtToken, JWT_SECRET, (error, decoded) => {
-    if (error) {
-      return res.status(401).json({ error: 'Token inválido o expirado' });
-    }
-
-    // Almacenar los datos del usuario en la solicitud para su uso posterior
-    req.user = decoded;
-    next();
-  });
-}
 
 
+
+
+// Configuración de la conexión a la base de datos usando variables de entorno
 const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'equipment_db'
-  });
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+});
 
   //Equipos reparados en un período de tiempo
   router.get('/reparados', (req, res) => {

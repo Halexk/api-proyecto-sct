@@ -1,4 +1,5 @@
-const express = require('express');
+require('dotenv').config(); // Carga las variables de entorno al inicio
+
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
 const router = require('express').Router();
@@ -6,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 // Clave secreta para firmar los tokens (debe ser segura y almacenada en variables de entorno)
-const JWT_SECRET = 'cetasio123';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Función para generar un token JWT
 function generateToken(user) {
@@ -22,12 +23,12 @@ function generateToken(user) {
 }
 
 
-// Configuración de la conexión a MySQL
+// Configuración de la conexión a la base de datos usando variables de entorno
 const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'equipment_db'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
 
 connection.connect((error) => {

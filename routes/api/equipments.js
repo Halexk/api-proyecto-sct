@@ -1,8 +1,10 @@
+require('dotenv').config(); // Carga las variables de entorno al inicio
+
 const router = require('express').Router();
 const mysql = require('mysql');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = 'cetasio123';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function verifyToken(req, res, next) {
   const token = req.headers['authorization'];
@@ -33,12 +35,14 @@ function verifyToken(req, res, next) {
 
 
 
+// Configuración de la conexión a la base de datos usando variables de entorno
 const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'equipment_db'
-  });
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+});
+
 
 //register equipments
 router.post('/add', verifyToken, (req, res) => {
